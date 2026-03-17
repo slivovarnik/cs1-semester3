@@ -36,3 +36,18 @@ output "nat_gateway_id" {
   description = "NAT gateway ID for private subnet outbound traffic"
   value = aws_nat_gateway.nat.id
 }
+
+output "alb_sg_id" {
+  description = "Security group ID for the ALB"
+  value = aws_security_group.alb_sg.id
+}
+
+output "web_sg_id" {
+  description = "Security group ID for the web servers"
+  value = aws_security_group.web_sg.id
+}
+
+output "rds_sg_id" {
+  description = "Security group ID for RDS"
+  value = aws_security_group.rds_sg.id
+}
