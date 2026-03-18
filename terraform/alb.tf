@@ -6,7 +6,7 @@ resource "aws_lb" "app_alb" {
   subnets = [
     aws_subnet.public_a.id,
     aws_subnet.public_b.id
-    ]
+  ]
 
   tags = {
     Name    = "${var.project}-alb"
@@ -26,7 +26,7 @@ resource "aws_lb_target_group" "web_tg" {
     unhealthy_threshold = 2
     interval            = 30
     timeout             = 5
-    path                = "/index.php"
+    path                = "/health.html"
     protocol            = "HTTP"
     matcher             = "200"
   }

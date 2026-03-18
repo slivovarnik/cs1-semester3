@@ -84,3 +84,28 @@ output "alb_target_group_arn" {
   description = "ARN of the ALB target group"
   value       = aws_lb_target_group.web_tg.arn
 }
+
+output "db_cluster_endpoint" {
+  description = "Writer endpoint of the Aurora PostgreSQL cluster"
+  value       = aws_rds_cluster.aurora_pg.endpoint
+}
+
+output "db_reader_endpoint" {
+  description = "Reader endpoint of the Aurora PostgreSQL cluster"
+  value       = aws_rds_cluster.aurora_pg.reader_endpoint
+}
+
+output "db_name" {
+  description = "Database name"
+  value       = aws_rds_cluster.aurora_pg.database_name
+}
+
+output "db_port" {
+  description = "Database port"
+  value       = aws_rds_cluster.aurora_pg.port
+}
+
+output "cloudwatch_dashboard_name" {
+  description = "CloudWatch dashboard name"
+  value       = aws_cloudwatch_dashboard.main.dashboard_name
+}
