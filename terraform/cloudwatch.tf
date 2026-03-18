@@ -75,9 +75,9 @@ resource "aws_cloudwatch_dashboard" "main" {
         width  = 12
         height = 6
         properties = {
-          title   = "EC2 CPU"
-          view    = "timeSeries"
-          region  = var.region
+          title  = "EC2 CPU"
+          view   = "timeSeries"
+          region = var.region
           metrics = [
             ["AWS/EC2", "CPUUtilization", "InstanceId", aws_instance.web1.id],
             [".", ".", "InstanceId", aws_instance.web2.id]
@@ -91,9 +91,9 @@ resource "aws_cloudwatch_dashboard" "main" {
         width  = 12
         height = 6
         properties = {
-          title   = "ALB Health"
-          view    = "timeSeries"
-          region  = var.region
+          title  = "ALB Health"
+          view   = "timeSeries"
+          region = var.region
           metrics = [
             ["AWS/ApplicationELB", "HealthyHostCount", "LoadBalancer", aws_lb.app_alb.arn_suffix, "TargetGroup", aws_lb_target_group.web_tg.arn_suffix],
             [".", "UnHealthyHostCount", ".", ".", ".", "."]
@@ -107,9 +107,9 @@ resource "aws_cloudwatch_dashboard" "main" {
         width  = 12
         height = 6
         properties = {
-          title   = "ALB Requests"
-          view    = "timeSeries"
-          region  = var.region
+          title  = "ALB Requests"
+          view   = "timeSeries"
+          region = var.region
           metrics = [
             ["AWS/ApplicationELB", "RequestCount", "LoadBalancer", aws_lb.app_alb.arn_suffix]
           ]
@@ -122,9 +122,9 @@ resource "aws_cloudwatch_dashboard" "main" {
         width  = 12
         height = 6
         properties = {
-          title   = "Aurora Writer CPU"
-          view    = "timeSeries"
-          region  = var.region
+          title  = "Aurora Writer CPU"
+          view   = "timeSeries"
+          region = var.region
           metrics = [
             ["AWS/RDS", "CPUUtilization", "DBInstanceIdentifier", aws_rds_cluster_instance.writer.id]
           ]
