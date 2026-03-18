@@ -32,8 +32,8 @@ error_reporting(E_ALL);
 $host = "${aws_rds_cluster.aurora_pg.endpoint}";
 $port = "5432";
 $dbname = "appdb";
-$user = "postgres";
-$password = "RosiCS1_DB!";
+$user = "${local.db_credentials.username}";
+$password = "${local.db_credentials.password}";
 $hostname = gethostname();
 
 try {

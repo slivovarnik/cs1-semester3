@@ -109,3 +109,9 @@ output "cloudwatch_dashboard_name" {
   description = "CloudWatch dashboard name"
   value       = aws_cloudwatch_dashboard.main.dashboard_name
 }
+
+output "db_secret_name" {
+  description = "Secrets Manager secret name for DB credentials"
+  value       = aws_secretsmanager_secret.db_credentials.name
+}
+

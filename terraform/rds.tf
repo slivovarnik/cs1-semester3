@@ -17,8 +17,8 @@ resource "aws_rds_cluster" "aurora_pg" {
   engine             = "aurora-postgresql"
 
   database_name   = "appdb"
-  master_username = "postgres"
-  master_password = "RosiCS1_DB!"
+  master_username = local.db_credentials.username
+  master_password = local.db_credentials.password
 
   db_subnet_group_name   = aws_db_subnet_group.main.name
   vpc_security_group_ids = [aws_security_group.rds_sg.id]
