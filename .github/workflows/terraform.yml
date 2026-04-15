@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-  pull_request:
   workflow_dispatch:
 
 jobs:
@@ -30,7 +29,7 @@ jobs:
       - name: Configure AWS credentials from GitHub OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::555289298069:role/github-actions-terraform
+          role-to-assume: arn:aws:iam::536300832697:role/github-actions-terraform
           aws-region: eu-central-1
 
       - name: Terraform Format Check
@@ -69,7 +68,7 @@ jobs:
       - name: Configure AWS credentials from GitHub OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::555289298069:role/github-actions-terraform
+          role-to-assume: arn:aws:iam::536300832697:role/github-actions-terraform
           aws-region: eu-central-1
 
       - name: Terraform Init

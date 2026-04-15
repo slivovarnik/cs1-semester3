@@ -6,10 +6,15 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
+
+    archive = {
+      source  = "hashicorp/archive"
+      version = "~> 2.4"
+    }
   }
 
   backend "s3" {
-    bucket  = "rosi-terraform-state-555289298069-eu-central-1-an"
+    bucket  = "rosi-terraform-state-536300832697-eu-central-1-an"
     key     = "case-study/terraform.tfstate"
     region  = "eu-central-1"
     encrypt = true

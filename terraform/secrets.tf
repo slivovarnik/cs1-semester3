@@ -1,10 +1,11 @@
 resource "aws_secretsmanager_secret" "db_credentials" {
-  name        = "${var.project}-db-credentials"
+  name        = "${var.project}-db-credentials-cs2"
   description = "Database credentials for Aurora PostgreSQL"
 
   tags = {
-    Name    = "${var.project}-db-credentials"
+    Name    = "${var.project}-db-credentials-cs2"
     Project = var.project
+    Role    = "secrets"
   }
 }
 
@@ -13,7 +14,7 @@ resource "aws_secretsmanager_secret_version" "db_credentials" {
 
   secret_string = jsonencode({
     username = "postgres"
-    password = "RosiCS1_DB!"
+    password = "RosiCS2_DB!"
   })
 }
 
