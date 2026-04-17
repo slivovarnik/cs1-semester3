@@ -13,7 +13,7 @@ resource "aws_secretsmanager_secret_version" "db_credentials" {
 
   secret_string = jsonencode({
     username = "postgres"
-    password = "RosiCS1_DB!"
+    password = var.db_password
   })
 }
 

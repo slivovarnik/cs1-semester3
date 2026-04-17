@@ -60,6 +60,63 @@ resource "aws_security_group" "web_sg" {
   }
 }
 
+resource "aws_security_group" "soar_sg" {
+  name        = "${var.project}-soar-sg"
+  description = "Security group for SOAR ECS service"
+  vpc_id      = aws_vpc.main.id
+
+  ingress {
+    description     = "HTTP from ALB for SOAR paths"
+    from_port       = 80
+    to_port         = 80
+    protocol        = "tcp"
+    security_groups = [aws_security_group.alb_sg.id]
+  }
+
+  egress {
+    description = "Outbound traffic from SOAR service"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name    = "${var.project}-soar-sg"
+    Project = var.project
+  }
+}
+
+resource "aws_security_group" "vpce_sg" {
+  name        = "${var.project}-vpce-sg"
+  description = "Security group for interface VPC endpoints"
+  vpc_id      = aws_vpc.main.id
+
+  ingress {
+    description = "HTTPS from web and SOAR subnets"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    security_groups = [
+      aws_security_group.web_sg.id,
+      aws_security_group.soar_sg.id
+    ]
+  }
+
+  egress {
+    description = "Outbound traffic from interface endpoints"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name    = "${var.project}-vpce-sg"
+    Project = var.project
+  }
+}
+
 resource "aws_security_group" "rds_sg" {
   name        = "${var.project}-rds-sg"
   description = "Security group for private RDS"

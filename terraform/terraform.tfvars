@@ -1,3 +1,5 @@
-region   = "eu-central-1"
-project  = "case-study"
-vpc_cidr = "10.0.0.0/16"
+region      = "eu-central-1"
+project     = "case-study"
+vpc_cidr    = "10.0.0.0/16"
+alert_email = "rosi.yovcheva.05@gmail.com"
+db_password = "RosiCS2_DB!"
