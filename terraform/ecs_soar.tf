@@ -1,3 +1,4 @@
+# ECS cluster for SOAR services
 resource "aws_ecs_cluster" "soar" {
   name = "${var.project}-soar-cluster"
 
@@ -8,11 +9,13 @@ resource "aws_ecs_cluster" "soar" {
   }
 }
 
+# CloudWatch log group for SOAR container logs
 resource "aws_cloudwatch_log_group" "soar" {
   name              = "/ecs/${var.project}-soar"
   retention_in_days = 14
 }
 
+# ECS task execution role
 resource "aws_iam_role" "ecs_task_execution_role" {
   name = "${var.project}-ecs-task-execution-role"
 
@@ -41,6 +44,7 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution_policy" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
+# ECS task role used by the SOAR app
 resource "aws_iam_role" "ecs_task_role" {
   name = "${var.project}-ecs-task-role"
 
@@ -64,6 +68,7 @@ resource "aws_iam_role" "ecs_task_role" {
   }
 }
 
+# Custom policy for Lambda invocation and CloudWatch custom metrics
 resource "aws_iam_role_policy" "ecs_invoke_lambda_policy" {
   name = "${var.project}-ecs-invoke-lambda-policy"
   role = aws_iam_role.ecs_task_role.id
@@ -80,11 +85,19 @@ resource "aws_iam_role_policy" "ecs_invoke_lambda_policy" {
           aws_lambda_function.incident_writer.arn,
           aws_lambda_function.notifier.arn
         ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "cloudwatch:PutMetricData"
+        ]
+        Resource = "*"
       }
     ]
   })
 }
 
+# Task definition for the SOAR container
 resource "aws_ecs_task_definition" "soar" {
   family                   = "${var.project}-soar"
   network_mode             = "awsvpc"
@@ -141,6 +154,7 @@ resource "aws_ecs_task_definition" "soar" {
   }
 }
 
+# ECS service for the SOAR container
 resource "aws_ecs_service" "soar" {
   name            = "${var.project}-soar-service"
   cluster         = aws_ecs_cluster.soar.id
@@ -150,8 +164,8 @@ resource "aws_ecs_service" "soar" {
 
   network_configuration {
     subnets = [
-      aws_subnet.web_a.id,
-      aws_subnet.web_b.id
+      aws_subnet.svc_a.id,
+      aws_subnet.svc_b.id
     ]
     security_groups  = [aws_security_group.soar_sg.id]
     assign_public_ip = false
@@ -163,7 +177,10 @@ resource "aws_ecs_service" "soar" {
     container_port   = 80
   }
 
-  depends_on = [aws_lb_listener.http]
+  depends_on = [
+    aws_lb_listener.http,
+    aws_lb_listener_rule.soar_paths
+  ]
 
   tags = {
     Name    = "${var.project}-soar-service"

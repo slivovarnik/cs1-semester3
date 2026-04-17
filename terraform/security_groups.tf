@@ -1,7 +1,9 @@
+# Security group for the public ALB
+# Allows inbound HTTP/HTTPS from the internet.
 resource "aws_security_group" "alb_sg" {
   name        = "${var.project}-alb-sg"
-  description = "Security group for the public ALB"
-  vpc_id      = aws_vpc.main.id
+  description = "Security group for public ALB"
+  vpc_id      = aws_vpc.workload.id
 
   ingress {
     description = "HTTP from internet"
@@ -20,7 +22,7 @@ resource "aws_security_group" "alb_sg" {
   }
 
   egress {
-    description = "Outbound traffic"
+    description = "Allow all outbound from ALB"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
@@ -33,10 +35,12 @@ resource "aws_security_group" "alb_sg" {
   }
 }
 
+# Security group for web servers
+# Only allows HTTP from the ALB.
 resource "aws_security_group" "web_sg" {
   name        = "${var.project}-web-sg"
-  description = "Security group for private web servers"
-  vpc_id      = aws_vpc.main.id
+  description = "Security group for web servers"
+  vpc_id      = aws_vpc.workload.id
 
   ingress {
     description     = "HTTP from ALB"
@@ -47,7 +51,7 @@ resource "aws_security_group" "web_sg" {
   }
 
   egress {
-    description = "Outbound traffic"
+    description = "Allow all outbound from web servers"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
@@ -60,21 +64,23 @@ resource "aws_security_group" "web_sg" {
   }
 }
 
+# Security group for ECS SOAR
+# Allows internal SOAR traffic from inside the workload VPC.
 resource "aws_security_group" "soar_sg" {
   name        = "${var.project}-soar-sg"
-  description = "Security group for SOAR ECS service"
-  vpc_id      = aws_vpc.main.id
+  description = "Security group for ECS SOAR"
+  vpc_id      = aws_vpc.workload.id
 
   ingress {
-    description     = "HTTP from ALB for SOAR paths"
-    from_port       = 80
-    to_port         = 80
-    protocol        = "tcp"
-    security_groups = [aws_security_group.alb_sg.id]
+    description = "SOAR traffic from workload VPC"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = [aws_vpc.workload.cidr_block]
   }
 
   egress {
-    description = "Outbound traffic from SOAR service"
+    description = "Allow all outbound from SOAR"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
@@ -87,24 +93,23 @@ resource "aws_security_group" "soar_sg" {
   }
 }
 
+# Security group for interface VPC endpoints
+# Allows HTTPS from private resources inside the workload VPC.
 resource "aws_security_group" "vpce_sg" {
   name        = "${var.project}-vpce-sg"
   description = "Security group for interface VPC endpoints"
-  vpc_id      = aws_vpc.main.id
+  vpc_id      = aws_vpc.workload.id
 
   ingress {
-    description = "HTTPS from web and SOAR subnets"
+    description = "HTTPS from workload private resources"
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
-    security_groups = [
-      aws_security_group.web_sg.id,
-      aws_security_group.soar_sg.id
-    ]
+    cidr_blocks = [aws_vpc.workload.cidr_block]
   }
 
   egress {
-    description = "Outbound traffic from interface endpoints"
+    description = "Allow all outbound from interface endpoints"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
@@ -117,21 +122,26 @@ resource "aws_security_group" "vpce_sg" {
   }
 }
 
+# Security group for Aurora / RDS
+# Allows PostgreSQL access from the Workload VPC and connected VPN clients.
 resource "aws_security_group" "rds_sg" {
   name        = "${var.project}-rds-sg"
-  description = "Security group for private RDS"
-  vpc_id      = aws_vpc.main.id
+  description = "Security group for Aurora in data VPC"
+  vpc_id      = aws_vpc.data.id
 
   ingress {
-    description     = "PostgreSQL from web servers"
-    from_port       = 5432
-    to_port         = 5432
-    protocol        = "tcp"
-    security_groups = [aws_security_group.web_sg.id]
+    description = "PostgreSQL from workload VPC and Client VPN"
+    from_port   = 5432
+    to_port     = 5432
+    protocol    = "tcp"
+    cidr_blocks = [
+      aws_vpc.workload.cidr_block,
+      var.client_vpn_cidr
+    ]
   }
 
   egress {
-    description = "Outbound traffic"
+    description = "Allow all outbound from Aurora"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"

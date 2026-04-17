@@ -8,6 +8,7 @@ resource "aws_cloudwatch_metric_alarm" "web1_cpu_high" {
   statistic           = "Average"
   threshold           = 80
   alarm_description   = "High CPU on web1"
+  treat_missing_data  = "notBreaching"
 
   dimensions = {
     InstanceId = aws_instance.web1.id
@@ -24,6 +25,7 @@ resource "aws_cloudwatch_metric_alarm" "web2_cpu_high" {
   statistic           = "Average"
   threshold           = 80
   alarm_description   = "High CPU on web2"
+  treat_missing_data  = "notBreaching"
 
   dimensions = {
     InstanceId = aws_instance.web2.id
@@ -40,6 +42,7 @@ resource "aws_cloudwatch_metric_alarm" "alb_unhealthy_hosts" {
   statistic           = "Average"
   threshold           = 0
   alarm_description   = "ALB has unhealthy web targets"
+  treat_missing_data  = "notBreaching"
 
   dimensions = {
     LoadBalancer = aws_lb.app_alb.arn_suffix
@@ -57,6 +60,7 @@ resource "aws_cloudwatch_metric_alarm" "aurora_writer_cpu_high" {
   statistic           = "Average"
   threshold           = 80
   alarm_description   = "High CPU on Aurora writer"
+  treat_missing_data  = "notBreaching"
 
   dimensions = {
     DBInstanceIdentifier = aws_rds_cluster_instance.writer.id
@@ -73,6 +77,7 @@ resource "aws_cloudwatch_metric_alarm" "soar_ecs_cpu_high" {
   statistic           = "Average"
   threshold           = 80
   alarm_description   = "High CPU utilization on SOAR ECS service"
+  treat_missing_data  = "notBreaching"
 
   dimensions = {
     ClusterName = aws_ecs_cluster.soar.name
@@ -90,22 +95,11 @@ resource "aws_cloudwatch_metric_alarm" "soar_ecs_memory_high" {
   statistic           = "Average"
   threshold           = 80
   alarm_description   = "High memory utilization on SOAR ECS service"
+  treat_missing_data  = "notBreaching"
 
   dimensions = {
     ClusterName = aws_ecs_cluster.soar.name
     ServiceName = aws_ecs_service.soar.name
-  }
-}
-
-resource "aws_cloudwatch_log_metric_filter" "unauthorized_access" {
-  name           = "${var.project}-unauthorized-access-filter"
-  log_group_name = aws_cloudwatch_log_group.soar.name
-  pattern        = "\"UNAUTHORIZED_ACCESS\""
-
-  metric_transformation {
-    name      = "UnauthorizedAccessCount"
-    namespace = "${var.project}/SOAR"
-    value     = "1"
   }
 }
 
@@ -118,7 +112,8 @@ resource "aws_cloudwatch_metric_alarm" "unauthorized_access_detected" {
   period              = 60
   statistic           = "Sum"
   threshold           = 1
-  alarm_description   = "Unauthorized access attempt detected in SOAR logs"
+  alarm_description   = "Unauthorized access attempt detected by SOAR custom metric"
+  treat_missing_data  = "notBreaching"
 }
 
 resource "aws_cloudwatch_dashboard" "main" {

@@ -10,10 +10,16 @@ variable "project" {
   default     = "case-study"
 }
 
-variable "vpc_cidr" {
-  description = "CIDR block for the VPC"
+variable "workload_vpc_cidr" {
+  description = "CIDR block for the workload VPC"
   type        = string
-  default     = "10.0.0.0/16"
+  default     = "10.20.0.0/16"
+}
+
+variable "data_vpc_cidr" {
+  description = "CIDR block for the data VPC"
+  type        = string
+  default     = "10.30.0.0/16"
 }
 
 variable "alert_email" {
@@ -22,7 +28,26 @@ variable "alert_email" {
 }
 
 variable "db_password" {
-  description = "Database password for Aurora"
+  description = "Database password stored in Secrets Manager"
   type        = string
   sensitive   = true
+}
+
+# ACM certificate ARN for the Client VPN server certificate
+variable "client_vpn_server_certificate_arn" {
+  description = "ACM ARN of the server certificate for AWS Client VPN"
+  type        = string
+}
+
+# ACM certificate ARN for the client certificate/root chain used for mutual authentication
+variable "client_vpn_client_root_certificate_chain_arn" {
+  description = "ACM ARN used for Client VPN mutual authentication"
+  type        = string
+}
+
+# CIDR block assigned to VPN clients after they connect
+variable "client_vpn_cidr" {
+  description = "CIDR block assigned to AWS Client VPN clients"
+  type        = string
+  default     = "172.16.0.0/22"
 }

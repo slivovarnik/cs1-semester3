@@ -1,3 +1,4 @@
+# Public Application Load Balancer in the Workload VPC
 resource "aws_lb" "app_alb" {
   name               = "${var.project}-alb"
   internal           = false
@@ -15,11 +16,12 @@ resource "aws_lb" "app_alb" {
   }
 }
 
+# Target group for the web servers
 resource "aws_lb_target_group" "web_tg" {
   name     = "${var.project}-web-tg"
   port     = 80
   protocol = "HTTP"
-  vpc_id   = aws_vpc.main.id
+  vpc_id   = aws_vpc.workload.id
 
   health_check {
     enabled             = true
@@ -38,12 +40,13 @@ resource "aws_lb_target_group" "web_tg" {
   }
 }
 
+# Target group for the SOAR ECS service
 resource "aws_lb_target_group" "soar_tg" {
   name        = "${var.project}-soar-tg"
   port        = 80
   protocol    = "HTTP"
   target_type = "ip"
-  vpc_id      = aws_vpc.main.id
+  vpc_id      = aws_vpc.workload.id
 
   health_check {
     enabled             = true
@@ -62,18 +65,21 @@ resource "aws_lb_target_group" "soar_tg" {
   }
 }
 
+# Register web server 1 in the web target group
 resource "aws_lb_target_group_attachment" "web1" {
   target_group_arn = aws_lb_target_group.web_tg.arn
   target_id        = aws_instance.web1.id
   port             = 80
 }
 
+# Register web server 2 in the web target group
 resource "aws_lb_target_group_attachment" "web2" {
   target_group_arn = aws_lb_target_group.web_tg.arn
   target_id        = aws_instance.web2.id
   port             = 80
 }
 
+# Default HTTP listener for the ALB
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.app_alb.arn
   port              = 80
@@ -85,6 +91,7 @@ resource "aws_lb_listener" "http" {
   }
 }
 
+# Listener rule for SOAR paths
 resource "aws_lb_listener_rule" "soar_paths" {
   listener_arn = aws_lb_listener.http.arn
   priority     = 100
@@ -96,7 +103,7 @@ resource "aws_lb_listener_rule" "soar_paths" {
 
   condition {
     path_pattern {
-      values = ["/soar*", "/soar/*"]
+      values = ["/soar/*"]
     }
   }
 }

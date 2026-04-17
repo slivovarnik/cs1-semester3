@@ -7,6 +7,7 @@ from datetime import datetime
 app = Flask(__name__)
 
 lambda_client = boto3.client("lambda", region_name=os.getenv("AWS_REGION", "eu-central-1"))
+cloudwatch_client = boto3.client("cloudwatch", region_name=os.getenv("AWS_REGION", "eu-central-1"))
 
 INCIDENT_WRITER_FUNCTION = os.getenv("INCIDENT_WRITER_FUNCTION")
 NOTIFIER_FUNCTION = os.getenv("NOTIFIER_FUNCTION")
@@ -31,6 +32,19 @@ def invoke_lambda(function_name: str, payload: dict) -> dict:
     }
 
 
+def send_metric(metric_name: str, value: float = 1.0, unit: str = "Count") -> None:
+    cloudwatch_client.put_metric_data(
+        Namespace="case-study/SOAR",
+        MetricData=[
+            {
+                "MetricName": metric_name,
+                "Value": value,
+                "Unit": unit
+            }
+        ]
+    )
+
+
 @app.route("/soar/health", methods=["GET"])
 def health():
     return jsonify({"status": "ok"}), 200
@@ -52,6 +66,8 @@ def admin():
     app.logger.warning(
         f"UNAUTHORIZED_ACCESS path=/soar/admin source_ip={source_ip} severity=high"
     )
+
+    send_metric("UnauthorizedAccessCount")
 
     incident_result = invoke_lambda(INCIDENT_WRITER_FUNCTION, event_payload)
     notifier_result = invoke_lambda(NOTIFIER_FUNCTION, event_payload)
@@ -96,6 +112,13 @@ def process_event():
         app.logger.warning(
             f"UNAUTHORIZED_ACCESS path=/soar/event source_ip={source_ip} severity={severity}"
         )
+        send_metric("UnauthorizedAccessCount")
+
+    if event_type == "db_failure":
+        app.logger.warning(
+            f"DB_FAILURE path=/soar/event severity={severity} source={source}"
+        )
+        send_metric("DbFailureCount")
 
     incident_result = invoke_lambda(INCIDENT_WRITER_FUNCTION, event_payload)
     notifier_result = invoke_lambda(NOTIFIER_FUNCTION, event_payload)

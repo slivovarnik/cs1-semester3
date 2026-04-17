@@ -1,3 +1,5 @@
+# DB subnet group
+# Defines which private subnets Aurora can use in the Data VPC.
 resource "aws_db_subnet_group" "main" {
   name = "${var.project}-db-subnet-group"
 
@@ -12,6 +14,8 @@ resource "aws_db_subnet_group" "main" {
   }
 }
 
+# Aurora PostgreSQL cluster
+# Main database cluster for the application.
 resource "aws_rds_cluster" "aurora_pg" {
   cluster_identifier = "${var.project}-aurora-pg"
   engine             = "aurora-postgresql"
@@ -34,6 +38,8 @@ resource "aws_rds_cluster" "aurora_pg" {
   }
 }
 
+# Aurora writer instance
+# Handles primary database writes.
 resource "aws_rds_cluster_instance" "writer" {
   identifier           = "${var.project}-aurora-writer"
   cluster_identifier   = aws_rds_cluster.aurora_pg.id
@@ -50,6 +56,8 @@ resource "aws_rds_cluster_instance" "writer" {
   }
 }
 
+# Aurora reader instance
+# Used for read scaling and redundancy.
 resource "aws_rds_cluster_instance" "reader" {
   identifier           = "${var.project}-aurora-reader"
   cluster_identifier   = aws_rds_cluster.aurora_pg.id
