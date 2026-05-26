@@ -55,3 +55,43 @@ resource "aws_route" "data_to_client_vpn" {
   destination_cidr_block = var.client_vpn_cidr
   transit_gateway_id     = aws_ec2_transit_gateway.main.id
 }
+
+# TGW attachment for the Kubernetes VPC
+resource "aws_ec2_transit_gateway_vpc_attachment" "k8s" {
+  subnet_ids         = [aws_subnet.k8s_a.id, aws_subnet.k8s_b.id]
+  transit_gateway_id = aws_ec2_transit_gateway.main.id
+  vpc_id             = aws_vpc.k8s.id
+
+  tags = {
+    Name    = "${var.project}-k8s-tgw-attachment"
+    Project = var.project
+  }
+}
+
+# Route from Kubernetes VPC to Data VPC via TGW
+resource "aws_route" "k8s_to_data" {
+  route_table_id         = aws_route_table.k8s_rt.id
+  destination_cidr_block = aws_vpc.data.cidr_block
+  transit_gateway_id     = aws_ec2_transit_gateway.main.id
+}
+
+# Route from Kubernetes VPC to Workload VPC via TGW
+resource "aws_route" "k8s_to_workload" {
+  route_table_id         = aws_route_table.k8s_rt.id
+  destination_cidr_block = aws_vpc.workload.cidr_block
+  transit_gateway_id     = aws_ec2_transit_gateway.main.id
+}
+
+# Route from Data VPC back to Kubernetes VPC via TGW
+resource "aws_route" "data_to_k8s" {
+  route_table_id         = aws_route_table.data_rt.id
+  destination_cidr_block = aws_vpc.k8s.cidr_block
+  transit_gateway_id     = aws_ec2_transit_gateway.main.id
+}
+
+# Route from Workload VPC back to Kubernetes VPC via TGW
+resource "aws_route" "workload_to_k8s" {
+  route_table_id         = aws_route_table.private_rt.id
+  destination_cidr_block = aws_vpc.k8s.cidr_block
+  transit_gateway_id     = aws_ec2_transit_gateway.main.id
+}

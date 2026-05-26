@@ -1,0 +1,15 @@
+# ClusterIP service for the frontend
+# The Ingress routes traffic to this service
+# Not exposed directly outside the cluster
+apiVersion: v1
+kind: Service
+metadata:
+  name: hr-frontend
+  namespace: hr-app
+spec:
+  selector:
+    app: hr-frontend
+  ports:
+    - port: 80
+      targetPort: 80
+  type: ClusterIP

@@ -1,0 +1,35 @@
+# Ingress resource that provisions the internal ALB
+# The AWS Load Balancer Controller reads this and creates
+# an ALB in the private subnets of the Kubernetes VPC
+# internal = true means it is NOT internet facing
+# Only accessible through the Client VPN
+# Satisfies REQ-NCA-P3-06 Zero Trust
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hr-ingress
+  namespace: hr-app
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internal
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/subnets: SUBNET_A_ID,SUBNET_B_ID
+    alb.ingress.kubernetes.io/healthcheck-path: /health
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: hr-backend
+                port:
+                  number: 3000
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: hr-frontend
+                port:
+                  number: 80

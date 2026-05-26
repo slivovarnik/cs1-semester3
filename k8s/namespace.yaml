@@ -1,0 +1,10 @@
+# Creates an isolated namespace for the HR application
+# All application resources live here
+# NetworkPolicies are scoped to this namespace
+# satisfying REQ-NCA-P3-07 micro-segmentation
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: hr-app
+  labels:
+    app: hr-app

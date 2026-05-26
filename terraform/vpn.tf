@@ -99,3 +99,22 @@ resource "aws_ec2_client_vpn_route" "data" {
     aws_ec2_client_vpn_network_association.workload_a
   ]
 }
+
+# Route from Client VPN to Kubernetes VPC
+resource "aws_ec2_client_vpn_route" "k8s" {
+  client_vpn_endpoint_id = aws_ec2_client_vpn_endpoint.main.id
+  destination_cidr_block = aws_vpc.k8s.cidr_block
+  target_vpc_subnet_id   = aws_subnet.svc_a.id
+
+  depends_on = [
+    aws_ec2_client_vpn_network_association.workload_a
+  ]
+}
+
+# Authorization rule for Kubernetes VPC
+resource "aws_ec2_client_vpn_authorization_rule" "k8s" {
+  client_vpn_endpoint_id = aws_ec2_client_vpn_endpoint.main.id
+  target_network_cidr    = aws_vpc.k8s.cidr_block
+  authorize_all_groups   = true
+  description            = "Allow VPN clients to access Kubernetes VPC"
+}

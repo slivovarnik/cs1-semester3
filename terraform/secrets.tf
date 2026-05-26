@@ -26,3 +26,26 @@ data "aws_secretsmanager_secret_version" "db_credentials" {
 locals {
   db_credentials = jsondecode(data.aws_secretsmanager_secret_version.db_credentials.secret_string)
 }
+
+resource "aws_secretsmanager_secret" "hr_db" {
+  name        = "${var.project}-hr-db"
+  description = "HR application database credentials"
+
+  tags = {
+    Name    = "${var.project}-hr-db"
+    Project = var.project
+    Role    = "hr-app"
+  }
+}
+
+resource "aws_secretsmanager_secret_version" "hr_db" {
+  secret_id = aws_secretsmanager_secret.hr_db.id
+
+  secret_string = jsonencode({
+    username = "postgres"
+    password = var.db_password
+    host     = aws_rds_cluster.aurora_pg.endpoint
+    port     = 5432
+    dbname   = "hrapp"
+  })
+}

@@ -1,0 +1,86 @@
+# Default deny all ingress and egress in hr-app namespace
+# This is the foundation of Zero Trust at pod level
+# Nothing communicates unless explicitly allowed below
+# Satisfies REQ-NCA-P3-07 micro-segmentation
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+  namespace: hr-app
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+
+---
+# Allow ALB to reach frontend pods
+# Only traffic from within the VPC CIDR can reach frontend
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-frontend-ingress
+  namespace: hr-app
+spec:
+  podSelector:
+    matchLabels:
+      app: hr-frontend
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - ipBlock:
+            cidr: 10.40.0.0/16
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: hr-backend
+      ports:
+        - port: 3000
+    - ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+
+---
+# Allow frontend to reach backend
+# Only frontend pods can call the backend API
+# Satisfies REQ-NCA-P3-08 least privilege
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-backend-ingress
+  namespace: hr-app
+spec:
+  podSelector:
+    matchLabels:
+      app: hr-backend
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: hr-frontend
+      ports:
+        - port: 3000
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 10.30.0.0/16
+      ports:
+        - port: 5432
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - port: 443
+    - ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP

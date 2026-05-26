@@ -1,0 +1,17 @@
+# ClusterIP service for the backend
+# ClusterIP means only reachable from inside the cluster
+# The frontend reaches the backend through this service
+# Nothing outside the cluster can call the backend directly
+# Satisfies REQ-NCA-P3-08 least privilege
+apiVersion: v1
+kind: Service
+metadata:
+  name: hr-backend
+  namespace: hr-app
+spec:
+  selector:
+    app: hr-backend
+  ports:
+    - port: 3000
+      targetPort: 3000
+  type: ClusterIP

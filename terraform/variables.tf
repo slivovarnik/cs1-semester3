@@ -51,3 +51,19 @@ variable "client_vpn_cidr" {
   type        = string
   default     = "172.16.0.0/22"
 }
+
+variable "k8s_vpc_cidr" {
+  description = "CIDR block for the Kubernetes VPC"
+  type        = string
+  default     = "10.40.0.0/16"
+}
+
+variable "identity_store_id" {
+  description = "IAM Identity Center Identity Store ID — found in the IAM Identity Center console"
+  type        = string
+}
+
+variable "sso_instance_arn" {
+  description = "ARN of the IAM Identity Center instance — found in the IAM Identity Center console"
+  type        = string
+}

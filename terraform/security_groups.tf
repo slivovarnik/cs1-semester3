@@ -123,20 +123,21 @@ resource "aws_security_group" "vpce_sg" {
 }
 
 # Security group for Aurora / RDS
-# Allows PostgreSQL access from the Workload VPC and connected VPN clients.
+# Allows PostgreSQL access from Workload VPC, Client VPN, and Kubernetes VPC.
 resource "aws_security_group" "rds_sg" {
   name        = "${var.project}-rds-sg"
   description = "Security group for Aurora in data VPC"
   vpc_id      = aws_vpc.data.id
 
   ingress {
-    description = "PostgreSQL from workload VPC and Client VPN"
+    description = "PostgreSQL from workload VPC, Client VPN, and Kubernetes VPC"
     from_port   = 5432
     to_port     = 5432
     protocol    = "tcp"
     cidr_blocks = [
       aws_vpc.workload.cidr_block,
-      var.client_vpn_cidr
+      var.client_vpn_cidr,
+      aws_vpc.k8s.cidr_block
     ]
   }
 
@@ -150,6 +151,69 @@ resource "aws_security_group" "rds_sg" {
 
   tags = {
     Name    = "${var.project}-rds-sg"
+    Project = var.project
+  }
+}
+
+# Security group for EKS worker nodes
+resource "aws_security_group" "eks_nodes_sg" {
+  name        = "${var.project}-eks-nodes-sg"
+  description = "Security group for EKS worker nodes"
+  vpc_id      = aws_vpc.k8s.id
+
+  ingress {
+    description = "Allow nodes to communicate with each other"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    self        = true
+  }
+
+  ingress {
+    description = "Allow all traffic within Kubernetes VPC"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = [var.k8s_vpc_cidr]
+  }
+
+  egress {
+    description = "Allow all outbound from nodes"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name    = "${var.project}-eks-nodes-sg"
+    Project = var.project
+  }
+}
+
+# Security group for VPC endpoints in the Kubernetes VPC
+resource "aws_security_group" "k8s_vpce_sg" {
+  name        = "${var.project}-k8s-vpce-sg"
+  description = "Security group for VPC endpoints in Kubernetes VPC"
+  vpc_id      = aws_vpc.k8s.id
+
+  ingress {
+    description = "HTTPS from Kubernetes VPC"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = [var.k8s_vpc_cidr]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name    = "${var.project}-k8s-vpce-sg"
     Project = var.project
   }
 }
