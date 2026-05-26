@@ -14,7 +14,7 @@ terraform {
   }
 
   backend "s3" {
-    bucket  = "rosi-terraform-state-985738120856-eu-central-1-an"
+    bucket  = "rosi-terraform-state-536300832697-eu-central-1-an"
     key     = "case-study/terraform.tfstate"
     region  = "eu-central-1"
     encrypt = true

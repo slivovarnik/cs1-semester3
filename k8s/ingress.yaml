@@ -13,7 +13,7 @@ metadata:
     kubernetes.io/ingress.class: alb
     alb.ingress.kubernetes.io/scheme: internal
     alb.ingress.kubernetes.io/target-type: ip
-    alb.ingress.kubernetes.io/subnets: SUBNET_A_ID,SUBNET_B_ID
+    alb.ingress.kubernetes.io/subnets: subnet-08d019ca96cc3f870,subnet-02c27ef2ddff89f4e
     alb.ingress.kubernetes.io/healthcheck-path: /health
 spec:
   rules:

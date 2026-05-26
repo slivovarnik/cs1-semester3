@@ -1,3 +1,5 @@
+# Secret for Aurora PostgreSQL credentials
+# Used by the CS2 web application and SOAR components
 resource "aws_secretsmanager_secret" "db_credentials" {
   name        = "${var.project}-db-credentials"
   description = "Database credentials for Aurora PostgreSQL"
@@ -27,9 +29,13 @@ locals {
   db_credentials = jsondecode(data.aws_secretsmanager_secret_version.db_credentials.secret_string)
 }
 
+# Secret for the HR application database connection
+# Used by the Node.js backend running on k3s
+# Retrieved at runtime through the EC2 instance profile
+# No credentials stored in code or manifests
 resource "aws_secretsmanager_secret" "hr_db" {
   name        = "${var.project}-hr-db"
-  description = "HR application database credentials"
+  description = "Aurora PostgreSQL connection details for the HR application"
 
   tags = {
     Name    = "${var.project}-hr-db"

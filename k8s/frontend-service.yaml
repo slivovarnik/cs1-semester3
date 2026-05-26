@@ -1,6 +1,7 @@
-# ClusterIP service for the frontend
-# The Ingress routes traffic to this service
-# Not exposed directly outside the cluster
+# NodePort service for the frontend
+# Exposes the frontend on a fixed port on the k3s node
+# VPN-connected users access the application through
+# the k3s node's private IP and this port
 apiVersion: v1
 kind: Service
 metadata:
@@ -12,4 +13,5 @@ spec:
   ports:
     - port: 80
       targetPort: 80
-  type: ClusterIP
+      nodePort: 30080
+  type: NodePort

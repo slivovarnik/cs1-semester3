@@ -123,21 +123,21 @@ resource "aws_security_group" "vpce_sg" {
 }
 
 # Security group for Aurora / RDS
-# Allows PostgreSQL access from Workload VPC, Client VPN, and Kubernetes VPC.
+# Allows PostgreSQL access from the Workload VPC, Client VPN,
+# and the k3s instance which runs in the Workload VPC
 resource "aws_security_group" "rds_sg" {
   name        = "${var.project}-rds-sg"
   description = "Security group for Aurora in data VPC"
   vpc_id      = aws_vpc.data.id
 
   ingress {
-    description = "PostgreSQL from workload VPC, Client VPN, and Kubernetes VPC"
+    description = "PostgreSQL from workload VPC and Client VPN"
     from_port   = 5432
     to_port     = 5432
     protocol    = "tcp"
     cidr_blocks = [
       aws_vpc.workload.cidr_block,
-      var.client_vpn_cidr,
-      aws_vpc.k8s.cidr_block
+      var.client_vpn_cidr
     ]
   }
 
@@ -155,30 +155,30 @@ resource "aws_security_group" "rds_sg" {
   }
 }
 
-# Security group for EKS worker nodes
-resource "aws_security_group" "eks_nodes_sg" {
-  name        = "${var.project}-eks-nodes-sg"
-  description = "Security group for EKS worker nodes"
-  vpc_id      = aws_vpc.k8s.id
+# Security group for Client VPN endpoint
+resource "aws_security_group" "client_vpn_sg" {
+  name        = "${var.project}-client-vpn-sg"
+  description = "Security group for AWS Client VPN endpoint"
+  vpc_id      = aws_vpc.workload.id
 
   ingress {
-    description = "Allow nodes to communicate with each other"
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    self        = true
+    description = "Client VPN over UDP 443"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "udp"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   ingress {
-    description = "Allow all traffic within Kubernetes VPC"
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = [var.k8s_vpc_cidr]
+    description = "Client VPN over TCP 443"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   egress {
-    description = "Allow all outbound from nodes"
+    description = "Allow all outbound from Client VPN endpoint"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
@@ -186,26 +186,37 @@ resource "aws_security_group" "eks_nodes_sg" {
   }
 
   tags = {
-    Name    = "${var.project}-eks-nodes-sg"
+    Name    = "${var.project}-client-vpn-sg"
     Project = var.project
   }
 }
 
-# Security group for VPC endpoints in the Kubernetes VPC
-resource "aws_security_group" "k8s_vpce_sg" {
-  name        = "${var.project}-k8s-vpce-sg"
-  description = "Security group for VPC endpoints in Kubernetes VPC"
-  vpc_id      = aws_vpc.k8s.id
+# Security group for k3s Kubernetes node
+# Allows traffic from within the Workload VPC and VPN clients
+# The k3s node runs in the Workload VPC private subnet
+resource "aws_security_group" "k3s_sg" {
+  name        = "${var.project}-k3s-sg"
+  description = "Security group for k3s Kubernetes node"
+  vpc_id      = aws_vpc.workload.id
 
   ingress {
-    description = "HTTPS from Kubernetes VPC"
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = [var.k8s_vpc_cidr]
+    description = "All traffic from Workload VPC"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = [aws_vpc.workload.cidr_block]
+  }
+
+  ingress {
+    description = "VPN client access to application"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = [var.client_vpn_cidr]
   }
 
   egress {
+    description = "Allow all outbound"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
@@ -213,7 +224,7 @@ resource "aws_security_group" "k8s_vpce_sg" {
   }
 
   tags = {
-    Name    = "${var.project}-k8s-vpce-sg"
+    Name    = "${var.project}-k3s-sg"
     Project = var.project
   }
 }

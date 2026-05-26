@@ -1,7 +1,7 @@
-# Backend deployment - Node.js API
-# 2 replicas spread across both AZs for resilience
-# Satisfies design-for-failure requirement
-# Uses the IRSA service account for Secrets Manager access
+# Backend deployment - Node.js HR API
+# 2 replicas for resilience
+# Uses EC2 instance profile for Secrets Manager access
+# instead of IRSA since we are running on k3s
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -17,17 +17,16 @@ spec:
       labels:
         app: hr-backend
     spec:
-      serviceAccountName: hr-backend-sa
       containers:
         - name: hr-backend
-          image: 985738120856.dkr.ecr.eu-central-1.amazonaws.com/case-study-hr-backend:latest
+          image: 536300832697.dkr.ecr.eu-central-1.amazonaws.com/case-study-hr-backend:latest
           ports:
             - containerPort: 3000
           env:
             - name: AWS_REGION
               value: eu-central-1
             - name: DB_SECRET_ARN
-              value: arn:aws:secretsmanager:eu-central-1:985738120856:secret:case-study-hr-db
+              value: arn:aws:secretsmanager:eu-central-1:536300832697:secret:case-study-hr-db-tGxCtk
           livenessProbe:
             httpGet:
               path: /api/health

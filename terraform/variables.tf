@@ -33,37 +33,30 @@ variable "db_password" {
   sensitive   = true
 }
 
-# ACM certificate ARN for the Client VPN server certificate
 variable "client_vpn_server_certificate_arn" {
   description = "ACM ARN of the server certificate for AWS Client VPN"
   type        = string
 }
 
-# ACM certificate ARN for the client certificate/root chain used for mutual authentication
 variable "client_vpn_client_root_certificate_chain_arn" {
   description = "ACM ARN used for Client VPN mutual authentication"
   type        = string
 }
 
-# CIDR block assigned to VPN clients after they connect
 variable "client_vpn_cidr" {
   description = "CIDR block assigned to AWS Client VPN clients"
   type        = string
   default     = "172.16.0.0/22"
 }
 
-variable "k8s_vpc_cidr" {
-  description = "CIDR block for the Kubernetes VPC"
-  type        = string
-  default     = "10.40.0.0/16"
-}
-
 variable "identity_store_id" {
   description = "IAM Identity Center Identity Store ID — found in the IAM Identity Center console"
   type        = string
+  default     = ""
 }
 
 variable "sso_instance_arn" {
   description = "ARN of the IAM Identity Center instance — found in the IAM Identity Center console"
   type        = string
+  default     = ""
 }
