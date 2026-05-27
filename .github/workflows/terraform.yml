@@ -147,7 +147,10 @@ jobs:
           docker build -t 536300832697.dkr.ecr.eu-central-1.amazonaws.com/case-study-hr-frontend:latest .
           docker push 536300832697.dkr.ecr.eu-central-1.amazonaws.com/case-study-hr-frontend:latest
 
-  # ── Job 5: Deploy to k3s ──
+  # ── Job 5: Deploy to k3s via SSM ──
+  # Uses AWS SSM to run kubectl on the k3s instance directly
+  # This avoids needing VPN access from the GitHub Actions runner
+  # The runner uploads manifests to S3, then SSM pulls them on the instance
   k8s-deploy:
     name: Deploy to Kubernetes
     if: github.event_name == 'push' && github.ref == 'refs/heads/cs2'
@@ -167,31 +170,31 @@ jobs:
           role-to-assume: arn:aws:iam::536300832697:role/github-actions-terraform
           aws-region: eu-central-1
 
-      - name: Install kubectl
-        uses: azure/setup-kubectl@v3
-
-      - name: Configure kubeconfig
+      - name: Upload manifests to S3
         run: |
-          mkdir -p ~/.kube
-          echo "${{ secrets.KUBECONFIG_B64 }}" | base64 -d > ~/.kube/config
+          aws s3 cp k8s/ s3://rosi-terraform-state-536300832697-eu-central-1-an/k8s-manifests/ \
+            --recursive \
+            --region eu-central-1
 
-      - name: Apply Kubernetes manifests
+      - name: Deploy via SSM
         run: |
-          kubectl apply -f k8s/namespace.yaml
-          kubectl apply -f k8s/serviceaccount.yaml
-          kubectl apply -f k8s/backend-service.yaml
-          kubectl apply -f k8s/backend-deployment.yaml
-          kubectl apply -f k8s/frontend-service.yaml
-          kubectl apply -f k8s/frontend-deployment.yaml
-          kubectl apply -f k8s/networkpolicy.yaml
-          kubectl apply -f k8s/ingress.yaml
-          kubectl apply -f k8s/rbac.yaml
+          COMMAND_ID=$(aws ssm send-command \
+            --instance-ids i-02739fbbb473bc76a \
+            --document-name "AWS-RunShellScript" \
+            --parameters commands='["aws s3 cp s3://rosi-terraform-state-536300832697-eu-central-1-an/k8s-manifests/ /tmp/k8s-manifests/ --recursive --region eu-central-1 && sudo kubectl apply -f /tmp/k8s-manifests/ && sudo kubectl rollout restart deployment/hr-backend -n hr-app && sudo kubectl rollout restart deployment/hr-frontend -n hr-app && sudo kubectl get pods -n hr-app"]' \
+            --region eu-central-1 \
+            --query Command.CommandId \
+            --output text)
 
-      - name: Verify deployment
-        run: |
-          kubectl rollout status deployment/hr-backend -n hr-app --timeout=120s
-          kubectl rollout status deployment/hr-frontend -n hr-app --timeout=120s
-          kubectl get pods -n hr-app
+          echo "SSM Command ID: $COMMAND_ID"
+          sleep 45
+
+          aws ssm get-command-invocation \
+            --command-id $COMMAND_ID \
+            --instance-id i-02739fbbb473bc76a \
+            --region eu-central-1 \
+            --query '{Status:Status,Output:StandardOutputContent}' \
+            --output table
 
   # ── Job 6: Deploy Lambda functions ──
   lambda-deploy:
