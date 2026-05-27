@@ -171,16 +171,17 @@
 
     <script>
         const API = '/api';
+        const LIFECYCLE_API = 'https://e3fqer80g0.execute-api.eu-central-1.amazonaws.com';
 
         async function loadEmployees() {
             try {
                 const res = await fetch(`${API}/employees`);
                 const employees = await res.json();
-                
+
                 const total = employees.length;
                 const active = employees.filter(e => e.status === 'active').length;
                 const inactive = total - active;
-                
+
                 document.getElementById('totalCount').textContent = total;
                 document.getElementById('activeCount').textContent = active;
                 document.getElementById('inactiveCount').textContent = inactive;
@@ -201,8 +202,8 @@
                         <td><span class="badge badge-${e.status}">${e.status}</span></td>
                         <td>${new Date(e.created_at).toLocaleDateString()}</td>
                         <td>
-                            ${e.status === 'active' 
-                                ? `<button class="btn btn-danger" onclick="offboard(${e.id})">Offboard</button>`
+                            ${e.status === 'active'
+                                ? `<button class="btn btn-danger" onclick="offboard(${e.id}, '${e.email}')">Offboard</button>`
                                 : '<span style="color:#718096;font-size:13px">Offboarded</span>'
                             }
                         </td>
@@ -226,6 +227,7 @@
             }
 
             try {
+                // Step 1 — Create employee record in database
                 const res = await fetch(`${API}/employees`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -239,6 +241,24 @@
                     document.getElementById('department').value = '';
                     document.getElementById('role').value = '';
                     loadEmployees();
+
+                    // Step 2 — Trigger Lambda onboarding function
+                    // Creates IAM Identity Center user and logs audit trail to CloudWatch
+                    // Runs async so it does not block the UI
+                    fetch(`${LIFECYCLE_API}/onboard`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name, email, department, role })
+                    }).then(r => {
+                        if (r.ok) {
+                            console.log('IAM Identity Center provisioning triggered for', email);
+                        } else {
+                            console.warn('IAM provisioning unavailable - SCP restriction');
+                        }
+                    }).catch(err => {
+                        console.warn('IAM provisioning unavailable:', err);
+                    });
+
                 } else {
                     const err = await res.json();
                     alertDiv.innerHTML = `<div class="alert alert-error">${err.error}</div>`;
@@ -250,16 +270,29 @@
             setTimeout(() => { alertDiv.innerHTML = ''; }, 4000);
         }
 
-        async function offboard(id) {
+        async function offboard(id, email) {
             if (!confirm('Are you sure you want to offboard this employee?')) return;
-            
+
             try {
+                // Step 1 — Update employee status in database
                 const res = await fetch(`${API}/employees/${id}/offboard`, {
                     method: 'PATCH'
                 });
-                
+
                 if (res.ok) {
                     loadEmployees();
+
+                    // Step 2 — Trigger Lambda offboarding function
+                    // Disables IAM Identity Center account and logs audit trail to CloudWatch
+                    fetch(`${LIFECYCLE_API}/offboard`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email })
+                    }).then(r => {
+                        console.log('IAM Identity Center offboarding triggered for', email);
+                    }).catch(err => {
+                        console.warn('IAM offboarding unavailable:', err);
+                    });
                 }
             } catch (err) {
                 console.error('Error offboarding:', err);
