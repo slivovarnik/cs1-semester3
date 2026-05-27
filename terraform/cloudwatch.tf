@@ -1,37 +1,3 @@
-resource "aws_cloudwatch_metric_alarm" "web1_cpu_high" {
-  alarm_name          = "${var.project}-web1-cpu-high"
-  comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = 2
-  metric_name         = "CPUUtilization"
-  namespace           = "AWS/EC2"
-  period              = 300
-  statistic           = "Average"
-  threshold           = 80
-  alarm_description   = "High CPU on web1"
-  treat_missing_data  = "notBreaching"
-
-  dimensions = {
-    InstanceId = aws_instance.web1.id
-  }
-}
-
-resource "aws_cloudwatch_metric_alarm" "web2_cpu_high" {
-  alarm_name          = "${var.project}-web2-cpu-high"
-  comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = 2
-  metric_name         = "CPUUtilization"
-  namespace           = "AWS/EC2"
-  period              = 300
-  statistic           = "Average"
-  threshold           = 80
-  alarm_description   = "High CPU on web2"
-  treat_missing_data  = "notBreaching"
-
-  dimensions = {
-    InstanceId = aws_instance.web2.id
-  }
-}
-
 resource "aws_cloudwatch_metric_alarm" "alb_unhealthy_hosts" {
   alarm_name          = "${var.project}-alb-unhealthy-hosts"
   comparison_operator = "GreaterThanThreshold"
@@ -41,12 +7,12 @@ resource "aws_cloudwatch_metric_alarm" "alb_unhealthy_hosts" {
   period              = 60
   statistic           = "Average"
   threshold           = 0
-  alarm_description   = "ALB has unhealthy web targets"
+  alarm_description   = "ALB has unhealthy targets"
   treat_missing_data  = "notBreaching"
 
   dimensions = {
     LoadBalancer = aws_lb.app_alb.arn_suffix
-    TargetGroup  = aws_lb_target_group.web_tg.arn_suffix
+    TargetGroup  = aws_lb_target_group.soar_tg.arn_suffix
   }
 }
 
@@ -128,12 +94,12 @@ resource "aws_cloudwatch_dashboard" "main" {
         width  = 12
         height = 6
         properties = {
-          title  = "EC2 CPU"
+          title  = "ALB Health"
           view   = "timeSeries"
           region = var.region
           metrics = [
-            ["AWS/EC2", "CPUUtilization", "InstanceId", aws_instance.web1.id],
-            [".", ".", "InstanceId", aws_instance.web2.id]
+            ["AWS/ApplicationELB", "HealthyHostCount", "LoadBalancer", aws_lb.app_alb.arn_suffix, "TargetGroup", aws_lb_target_group.soar_tg.arn_suffix],
+            [".", "UnHealthyHostCount", ".", ".", ".", "."]
           ]
         }
       },
@@ -141,22 +107,6 @@ resource "aws_cloudwatch_dashboard" "main" {
         type   = "metric"
         x      = 12
         y      = 0
-        width  = 12
-        height = 6
-        properties = {
-          title  = "ALB Health"
-          view   = "timeSeries"
-          region = var.region
-          metrics = [
-            ["AWS/ApplicationELB", "HealthyHostCount", "LoadBalancer", aws_lb.app_alb.arn_suffix, "TargetGroup", aws_lb_target_group.web_tg.arn_suffix],
-            [".", "UnHealthyHostCount", ".", ".", ".", "."]
-          ]
-        }
-      },
-      {
-        type   = "metric"
-        x      = 0
-        y      = 6
         width  = 12
         height = 6
         properties = {
@@ -170,7 +120,7 @@ resource "aws_cloudwatch_dashboard" "main" {
       },
       {
         type   = "metric"
-        x      = 12
+        x      = 0
         y      = 6
         width  = 12
         height = 6
@@ -185,8 +135,8 @@ resource "aws_cloudwatch_dashboard" "main" {
       },
       {
         type   = "metric"
-        x      = 0
-        y      = 12
+        x      = 12
+        y      = 6
         width  = 12
         height = 6
         properties = {
@@ -201,7 +151,7 @@ resource "aws_cloudwatch_dashboard" "main" {
       },
       {
         type   = "metric"
-        x      = 12
+        x      = 0
         y      = 12
         width  = 12
         height = 6

@@ -16,30 +16,6 @@ resource "aws_lb" "app_alb" {
   }
 }
 
-# Target group for the web servers
-resource "aws_lb_target_group" "web_tg" {
-  name     = "${var.project}-web-tg"
-  port     = 80
-  protocol = "HTTP"
-  vpc_id   = aws_vpc.workload.id
-
-  health_check {
-    enabled             = true
-    healthy_threshold   = 2
-    unhealthy_threshold = 2
-    interval            = 30
-    timeout             = 5
-    path                = "/health.html"
-    protocol            = "HTTP"
-    matcher             = "200"
-  }
-
-  tags = {
-    Name    = "${var.project}-web-tg"
-    Project = var.project
-  }
-}
-
 # Target group for the SOAR ECS service
 resource "aws_lb_target_group" "soar_tg" {
   name        = "${var.project}-soar-tg"
@@ -65,20 +41,6 @@ resource "aws_lb_target_group" "soar_tg" {
   }
 }
 
-# Register web server 1 in the web target group
-resource "aws_lb_target_group_attachment" "web1" {
-  target_group_arn = aws_lb_target_group.web_tg.arn
-  target_id        = aws_instance.web1.id
-  port             = 80
-}
-
-# Register web server 2 in the web target group
-resource "aws_lb_target_group_attachment" "web2" {
-  target_group_arn = aws_lb_target_group.web_tg.arn
-  target_id        = aws_instance.web2.id
-  port             = 80
-}
-
 # Default HTTP listener for the ALB
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.app_alb.arn
@@ -87,7 +49,7 @@ resource "aws_lb_listener" "http" {
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.web_tg.arn
+    target_group_arn = aws_lb_target_group.soar_tg.arn
   }
 }
 
