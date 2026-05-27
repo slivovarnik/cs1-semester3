@@ -1,20 +1,15 @@
-# Ingress resource that provisions the internal ALB
-# The AWS Load Balancer Controller reads this and creates
-# an ALB in the private subnets of the Kubernetes VPC
-# internal = true means it is NOT internet facing
-# Only accessible through the Client VPN
-# Satisfies REQ-NCA-P3-06 Zero Trust
+# Ingress resource for k3s using Traefik
+# k3s comes with Traefik disabled in our setup
+# We use a simple NodePort service instead
+# The frontend service will be exposed on a fixed port
+# accessible through the VPN to the k3s node's private IP
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: hr-ingress
   namespace: hr-app
   annotations:
-    kubernetes.io/ingress.class: alb
-    alb.ingress.kubernetes.io/scheme: internal
-    alb.ingress.kubernetes.io/target-type: ip
-    alb.ingress.kubernetes.io/subnets: subnet-08d019ca96cc3f870,subnet-02c27ef2ddff89f4e
-    alb.ingress.kubernetes.io/healthcheck-path: /health
+    kubernetes.io/ingress.class: traefik
 spec:
   rules:
     - http:

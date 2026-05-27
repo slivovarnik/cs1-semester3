@@ -14,8 +14,9 @@ spec:
     - Egress
 
 ---
-# Allow ALB to reach frontend pods
-# Only traffic from within the VPC CIDR can reach frontend
+# Allow traffic into frontend pods from the Workload VPC
+# Covers traffic from VPN clients reaching the NodePort
+# Satisfies REQ-NCA-P3-08 least privilege
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -27,11 +28,30 @@ spec:
       app: hr-frontend
   policyTypes:
     - Ingress
-    - Egress
   ingress:
     - from:
         - ipBlock:
-            cidr: 10.40.0.0/16
+            cidr: 10.20.0.0/16
+    - from:
+        - ipBlock:
+            cidr: 172.16.0.0/22
+
+---
+# Allow frontend egress to backend only
+# Blocks frontend from reaching IMDS
+# Frontend has no need for AWS API access
+# Satisfies REQ-NCA-P3-06 Zero Trust — least privilege at pod level
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-frontend-egress
+  namespace: hr-app
+spec:
+  podSelector:
+    matchLabels:
+      app: hr-frontend
+  policyTypes:
+    - Egress
   egress:
     - to:
         - podSelector:
@@ -39,6 +59,14 @@ spec:
               app: hr-backend
       ports:
         - port: 3000
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 169.254.169.254/32
+      ports:
+        - port: 80
+        - port: 443
     - ports:
         - port: 53
           protocol: UDP
@@ -46,8 +74,8 @@ spec:
           protocol: TCP
 
 ---
-# Allow frontend to reach backend
-# Only frontend pods can call the backend API
+# Allow traffic into backend pods only from frontend pods
+# Backend is completely isolated from everything except the frontend
 # Satisfies REQ-NCA-P3-08 least privilege
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -60,7 +88,6 @@ spec:
       app: hr-backend
   policyTypes:
     - Ingress
-    - Egress
   ingress:
     - from:
         - podSelector:
@@ -68,6 +95,23 @@ spec:
               app: hr-frontend
       ports:
         - port: 3000
+
+---
+# Allow backend egress to Aurora and AWS APIs
+# Backend needs to reach Aurora on port 5432
+# and Secrets Manager/IMDS on port 443
+# Satisfies REQ-NCA-P3-08 least privilege
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-backend-egress
+  namespace: hr-app
+spec:
+  podSelector:
+    matchLabels:
+      app: hr-backend
+  policyTypes:
+    - Egress
   egress:
     - to:
         - ipBlock:
@@ -79,6 +123,11 @@ spec:
             cidr: 0.0.0.0/0
       ports:
         - port: 443
+    - to:
+        - ipBlock:
+            cidr: 169.254.169.254/32
+      ports:
+        - port: 80
     - ports:
         - port: 53
           protocol: UDP

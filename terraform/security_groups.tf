@@ -123,8 +123,7 @@ resource "aws_security_group" "vpce_sg" {
 }
 
 # Security group for Aurora / RDS
-# Allows PostgreSQL access from the Workload VPC, Client VPN,
-# and the k3s instance which runs in the Workload VPC
+# Allows PostgreSQL access from the Workload VPC and Client VPN
 resource "aws_security_group" "rds_sg" {
   name        = "${var.project}-rds-sg"
   description = "Security group for Aurora in data VPC"
@@ -192,27 +191,38 @@ resource "aws_security_group" "client_vpn_sg" {
 }
 
 # Security group for k3s Kubernetes node
-# Allows traffic from within the Workload VPC and VPN clients
-# The k3s node runs in the Workload VPC private subnet
+# Tightened to only allow specific ports instead of all traffic
+# Port 30080 — HR application NodePort for VPN clients
+# Port 6443 — Kubernetes API for VPN clients
+# All internal VPC traffic for pod networking and SSM
+# Satisfies REQ-NCA-P3-08 least privilege firewall rules
 resource "aws_security_group" "k3s_sg" {
   name        = "${var.project}-k3s-sg"
   description = "Security group for k3s Kubernetes node"
   vpc_id      = aws_vpc.workload.id
 
   ingress {
-    description = "All traffic from Workload VPC"
+    description = "HR application access from VPN clients"
+    from_port   = 30080
+    to_port     = 30080
+    protocol    = "tcp"
+    cidr_blocks = [var.client_vpn_cidr]
+  }
+
+  ingress {
+    description = "Kubernetes API from VPN clients"
+    from_port   = 6443
+    to_port     = 6443
+    protocol    = "tcp"
+    cidr_blocks = [var.client_vpn_cidr]
+  }
+
+  ingress {
+    description = "Internal VPC communication for pod networking and SSM"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = [aws_vpc.workload.cidr_block]
-  }
-
-  ingress {
-    description = "VPN client access to application"
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = [var.client_vpn_cidr]
   }
 
   egress {
